@@ -39,7 +39,7 @@ async function fetchSummary() {
     // else if (s.type === "expense") totalExpense += s.amount;
   });
 
-  console.log(primaryTransactions);
+  //   console.log(primaryTransactions);
   const totalBalance = totalIncome - totalExpense;
 
   document.getElementById("totalIncome").innerText = formatPeso(totalIncome);
