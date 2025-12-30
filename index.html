@@ -62,8 +62,10 @@
       // const amountInput = document.getElementById('amount');
       // amountInput.value = '0';
 
-      const apiUrl = "http://localhost:3000/transactions";
-      const summaryUrl = "http://localhost:3000/summary";
+      const BASE_URL = "https://budget-backend-gucg.onrender.com";
+      const apiUrl = `${BASE_URL}/transactions`;
+      const summaryUrl = `${BASE_URL}/summary`;
+
       const modal = document.getElementById("transactionModal");
       const openBtn = document.getElementById("openModalBtn");
       const closeBtn = document.getElementsByClassName("close")[0];
