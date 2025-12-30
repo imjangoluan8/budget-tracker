@@ -26,6 +26,7 @@ async function fetchSummary() {
   const transactionsRes = await fetch(transactionUrl, { headers });
   const transactions = await transactionsRes.json();
 
+  console.log(transactions);
   const primaryTransactions = transactions.filter(
     (t) => t.bankId?.name === "Payroll Bank(RBANK)"
   );
@@ -37,6 +38,7 @@ async function fetchSummary() {
     else if (s.type === "Expense") totalExpense += s.amount;
   });
 
+  console.log(primaryTransactions);
   const totalBalance = totalIncome - totalExpense;
 
   document.getElementById("totalIncome").innerText = formatPeso(totalIncome);
