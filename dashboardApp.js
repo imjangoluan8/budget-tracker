@@ -1,6 +1,10 @@
 const BASE_URL = "https://budget-backend-gucg.onrender.com";
 const summaryUrl = `${BASE_URL}/summary`;
 
+const banksUrl = `${BASE_URL}/banks`;
+
+const transactionUrl = `${BASE_URL}/transactions`;
+
 // Format Philippine Peso
 function formatPeso(amount) {
   return new Intl.NumberFormat("en-PH", {
@@ -16,15 +20,23 @@ async function fetchSummary() {
   const res = await fetch(summaryUrl, { headers });
   const summary = await res.json();
 
-  console.log(summary);
+  const banksRes = await fetch(banksUrl, { headers });
+  const banks = await banksRes.json();
 
+  const transactionsRes = await fetch(transactionUrl, { headers });
+  const transactions = await transactionsRes.json();
+
+  const primaryTransactions = transactions.filter(
+    (t) => t.bankId?.name === "Payroll Bank(RBANK)"
+  );
   // Total income, expense, balance
   let totalIncome = 0,
     totalExpense = 0;
-  summary.forEach((s) => {
-    totalIncome += s.totalIncome;
-    totalExpense += s.totalExpense;
+  primaryTransactions.forEach((s) => {
+    if (s.type === "Income") totalIncome += s.amount;
+    else if (s.type === "Expense") totalExpense += s.amount;
   });
+
   const totalBalance = totalIncome - totalExpense;
 
   document.getElementById("totalIncome").innerText = formatPeso(totalIncome);
