@@ -35,7 +35,7 @@ async function fetchSummary() {
     totalExpense = 0;
   primaryTransactions.forEach((s) => {
     console.log(s);
-    console.log(t.type, t.amount, typeof t.amount);
+    console.log(s.type, s.amount, typeof s.amount);
     // if (s.type === "income") totalIncome += s.amount;
     // else if (s.type === "expense") totalExpense += s.amount;
   });
