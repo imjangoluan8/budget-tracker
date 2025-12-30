@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="budgetCodeContainer">
+      Budget Code: <span id="budgetCodeDisplay"></span>
+      <button id="clearBudgetCode">Clear</button>
+    </div>
     <div id="nav-placeholder"></div>
 
     <h1>Bank Accounts</h1>
@@ -67,8 +71,23 @@
         </div>
       </div>
     </div>
+    <script src="budgetCode.js"></script>
 
     <script>
+      loadNav();
+      function loadNav() {
+        const navPlaceholder = document.getElementById("nav-placeholder");
+        if (!navPlaceholder) return;
+        fetch("nav.html")
+          .then((res) => res.text())
+          .then((html) => (navPlaceholder.innerHTML = html));
+      }
+      //   let budgetCode = localStorage.getItem("budgetCode");
+      if (!budgetCode) {
+        budgetCode = prompt("Enter your Budget App Code:");
+        localStorage.setItem("budgetCode", budgetCode);
+      }
+
       const initBalance = document.getElementById("accountBalance");
       const openAddModalBtn = document.getElementById("openAddModalBtn");
       const modal = document.getElementById("addBankModal");
@@ -131,7 +150,7 @@
 
       // Fetch banks
       async function fetchBanks() {
-        const res = await fetch(apiUrl);
+        const res = await fetch(apiUrl, { headers });
         banks = await res.json();
         displayBanks();
       }
@@ -177,7 +196,7 @@
         // 1️⃣ Create bank
         const bankRes = await fetch(apiUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ name, balance }),
         });
 
@@ -192,7 +211,7 @@
 
           await fetch(transactionUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify({
               type: "income",
               amount: balance,
@@ -214,7 +233,7 @@
 
       // Delete account
       async function deleteAccount(id) {
-        await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+        await fetch(`${apiUrl}/${id}`, { method: "DELETE", headers });
         fetchBanks();
       }
 
@@ -294,7 +313,7 @@
 
         await fetch("http://localhost:3000/transfer", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             sourceId: source._id,
             destId: dest._id,
@@ -311,7 +330,7 @@
 
       // Open Ledger for a specific bank
       async function openLedger(bankId) {
-        const res = await fetch(transactionUrl);
+        const res = await fetch(transactionUrl, { headers });
         const transactions = await res.json();
 
         const ledgerTable = document.getElementById("ledgerTable");
