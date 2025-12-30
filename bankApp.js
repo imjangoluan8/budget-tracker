@@ -70,6 +70,7 @@ document.getElementById("transferAmount").addEventListener("input", (e) => {
 
 // Fetch banks
 async function fetchBanks() {
+  const headers = getBudgetCodeHeaders();
   const res = await fetch(apiUrl, { headers });
   banks = await res.json();
   displayBanks();
@@ -110,6 +111,7 @@ async function addAccount() {
   balance = parseFloat(balance);
 
   if (!name || isNaN(balance)) return alert("Fill all fields");
+  const headers = getBudgetCodeHeaders();
 
   // 1️⃣ Create bank
   const bankRes = await fetch(apiUrl, {
@@ -126,6 +128,7 @@ async function addAccount() {
     const month = `${today.getFullYear()}-${String(
       today.getMonth() + 1
     ).padStart(2, "0")}`;
+    const headers = getBudgetCodeHeaders();
 
     await fetch(transactionUrl, {
       method: "POST",
@@ -151,6 +154,8 @@ async function addAccount() {
 
 // Delete account
 async function deleteAccount(id) {
+  const headers = getBudgetCodeHeaders();
+
   await fetch(`${apiUrl}/${id}`, { method: "DELETE", headers });
   fetchBanks();
 }
@@ -228,6 +233,7 @@ async function submitTransfer() {
       isLedger: dest.name !== "Payroll Bank(RBANK)", // non-primary destination
     },
   ];
+  const headers = getBudgetCodeHeaders();
 
   await fetch("http://localhost:3000/transfer", {
     method: "POST",
@@ -248,6 +254,8 @@ async function submitTransfer() {
 
 // Open Ledger for a specific bank
 async function openLedger(bankId) {
+  const headers = getBudgetCodeHeaders();
+
   const res = await fetch(transactionUrl, { headers });
   const transactions = await res.json();
 
