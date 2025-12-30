@@ -231,7 +231,7 @@ async function submitTransfer() {
   ];
   const headers = getBudgetCodeHeaders();
 
-  await fetch("http://localhost:3000/transfer", {
+  await fetch(`${BASE_URL}/transfer`, {
     method: "POST",
     headers,
     body: JSON.stringify({
