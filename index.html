@@ -63,7 +63,7 @@
           .then((html) => (navPlaceholder.innerHTML = html));
       }
 
-      let budgetCode = localStorage.getItem("budgetCode");
+      //   let budgetCode = localStorage.getItem("budgetCode");
       if (!budgetCode) {
         budgetCode = prompt("Enter your Budget App Code:");
         localStorage.setItem("budgetCode", budgetCode);
