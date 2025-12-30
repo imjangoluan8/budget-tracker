@@ -1,9 +1,10 @@
 // budgetCode.js
 
 // --- Budget App Code Handling ---
+// Get stored code
 let budgetCode = localStorage.getItem("budgetCode");
 
-// Keep prompting until a valid code is entered
+// Force entering a code if empty
 while (!budgetCode) {
   budgetCode = prompt("Please enter your Budget App Code first:");
   if (budgetCode) {
@@ -11,61 +12,71 @@ while (!budgetCode) {
   }
 }
 
-const codeInput = document.getElementById("budgetCodeInput");
-const setCodeBtn = document.getElementById("setCodeBtn");
-const clearCodeBtn = document.getElementById("clearCodeBtn");
-const currentCodeDisplay = document.getElementById("currentCode");
+// Display the code in the UI
+const codeDisplay = document.getElementById("budgetCodeDisplay");
+codeDisplay.innerText = budgetCode;
 
-// Function to display current code
-function displayCode() {
-  if (!currentCodeDisplay || !codeInput || !setCodeBtn) return;
+// Clear/reset button
+document.getElementById("clearBudgetCode").onclick = () => {
+  localStorage.removeItem("budgetCode");
+  location.reload(); // reload page to force re-entering code
+};
 
-  if (budgetCode) {
-    currentCodeDisplay.innerText = "Current Code: " + budgetCode;
-    codeInput.style.display = "none";
-    setCodeBtn.style.display = "none";
-  } else {
-    currentCodeDisplay.innerText = "";
-    codeInput.style.display = "inline-block";
-    setCodeBtn.style.display = "inline-block";
-  }
-}
-displayCode();
+// const codeInput = document.getElementById("budgetCodeInput");
+// const setCodeBtn = document.getElementById("setCodeBtn");
+// const clearCodeBtn = document.getElementById("clearCodeBtn");
+// const currentCodeDisplay = document.getElementById("currentCode");
 
-// Set code
-if (setCodeBtn) {
-  setCodeBtn.onclick = () => {
-    const val = codeInput.value.trim();
-    if (!val) return alert("Budget App Code cannot be empty");
-    budgetCode = val;
-    localStorage.setItem("budgetCode", budgetCode);
-    displayCode();
+// // Function to display current code
+// function displayCode() {
+//   if (!currentCodeDisplay || !codeInput || !setCodeBtn) return;
 
-    // Call a page-specific function if exists
-    if (typeof reloadPageData === "function") reloadPageData();
-  };
-}
+//   if (budgetCode) {
+//     currentCodeDisplay.innerText = "Current Code: " + budgetCode;
+//     codeInput.style.display = "none";
+//     setCodeBtn.style.display = "none";
+//   } else {
+//     currentCodeDisplay.innerText = "";
+//     codeInput.style.display = "inline-block";
+//     setCodeBtn.style.display = "inline-block";
+//   }
+// }
+// displayCode();
 
-// Clear / Reset code
-if (clearCodeBtn) {
-  clearCodeBtn.onclick = () => {
-    localStorage.removeItem("budgetCode");
-    budgetCode = null;
-    displayCode();
+// // Set code
+// if (setCodeBtn) {
+//   setCodeBtn.onclick = () => {
+//     const val = codeInput.value.trim();
+//     if (!val) return alert("Budget App Code cannot be empty");
+//     budgetCode = val;
+//     localStorage.setItem("budgetCode", budgetCode);
+//     displayCode();
 
-    // Clear tables if exists
-    const transactionTable = document.getElementById("transactionTable");
-    const summaryTable = document.getElementById("summaryTable");
-    if (transactionTable)
-      transactionTable
-        .querySelectorAll("tr:not(:first-child)")
-        .forEach((r) => r.remove());
-    if (summaryTable)
-      summaryTable
-        .querySelectorAll("tr:not(:first-child)")
-        .forEach((r) => r.remove());
-  };
-}
+//     // Call a page-specific function if exists
+//     if (typeof reloadPageData === "function") reloadPageData();
+//   };
+// }
+
+// // Clear / Reset code
+// if (clearCodeBtn) {
+//   clearCodeBtn.onclick = () => {
+//     localStorage.removeItem("budgetCode");
+//     budgetCode = null;
+//     displayCode();
+
+//     // Clear tables if exists
+//     const transactionTable = document.getElementById("transactionTable");
+//     const summaryTable = document.getElementById("summaryTable");
+//     if (transactionTable)
+//       transactionTable
+//         .querySelectorAll("tr:not(:first-child)")
+//         .forEach((r) => r.remove());
+//     if (summaryTable)
+//       summaryTable
+//         .querySelectorAll("tr:not(:first-child)")
+//         .forEach((r) => r.remove());
+//   };
+// }
 
 // Function to get headers for fetch requests
 function getBudgetCodeHeaders() {
