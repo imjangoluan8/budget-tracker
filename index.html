@@ -51,7 +51,7 @@
         <button onclick="addTransaction()">Add</button>
       </div>
     </div>
-
+    <script src="budgetCode.js"></script>
     <script>
       let budgetCode = localStorage.getItem("budgetCode");
       if (!budgetCode) {
@@ -108,10 +108,7 @@
         amountInput.value = "0";
         monthInput.value = currentMonth;
       };
-      const headers = {
-        "Content-Type": "application/json",
-        "x-budget-code": budgetCode,
-      };
+      const headers = getBudgetCodeHeaders();
 
       async function fetchTransactions() {
         const res = await fetch(apiUrl, { headers });
@@ -156,10 +153,7 @@
         // Always assign Primary bank for manual transactions
         await fetch(apiUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-budget-code": budgetCode,
-          },
+          headers,
           body: JSON.stringify({ type, amount, month }),
         });
 
