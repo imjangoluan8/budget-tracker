@@ -6,12 +6,6 @@ function loadNav() {
     .then((res) => res.text())
     .then((html) => (navPlaceholder.innerHTML = html));
 }
-//   let budgetCode = localStorage.getItem("budgetCode");
-if (!budgetCode) {
-  budgetCode = prompt("Enter your Budget App Code:");
-  localStorage.setItem("budgetCode", budgetCode);
-}
-
 const initBalance = document.getElementById("accountBalance");
 const openAddModalBtn = document.getElementById("openAddModalBtn");
 const modal = document.getElementById("addBankModal");
