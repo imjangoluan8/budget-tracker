@@ -3,14 +3,14 @@
 // --- Budget App Code Handling ---
 let budgetCode = localStorage.getItem("budgetCode");
 
-if (!budgetCode) {
-  // Loop until user enters a non-empty value
-  do {
-    budgetCode = prompt("Enter your Budget App Code:");
-  } while (!budgetCode); // repeats if budgetCode is null or empty string
-
-  localStorage.setItem("budgetCode", budgetCode);
+// Keep prompting until a valid code is entered
+while (!budgetCode) {
+  budgetCode = prompt("Please enter your Budget App Code first:");
+  if (budgetCode) {
+    localStorage.setItem("budgetCode", budgetCode);
+  }
 }
+
 const codeInput = document.getElementById("budgetCodeInput");
 const setCodeBtn = document.getElementById("setCodeBtn");
 const clearCodeBtn = document.getElementById("clearCodeBtn");
