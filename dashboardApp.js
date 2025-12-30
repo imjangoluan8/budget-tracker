@@ -44,21 +44,59 @@ async function fetchSummary() {
   document.getElementById("totalExpense").innerText = formatPeso(totalExpense);
   document.getElementById("totalBalance").innerText = formatPeso(totalBalance);
 
-  const months = summary.map((s) => s.month);
-  const incomes = summary.map((s) => s.totalIncome);
-  const expenses = summary.map((s) => s.totalExpense);
-  const balances = summary.map((s) => s.balance);
+  const summaryMap = {};
+  primaryTransactions.forEach((t) => {
+    if (!summaryMap[t.month])
+      summaryMap[t.month] = {
+        totalIncome: 0,
+        totalExpense: 0,
+        balance: 0,
+      };
+    if (t.type === "income") summaryMap[t.month].totalIncome += t.amount;
+    else summaryMap[t.month].totalExpense += t.amount;
+    summaryMap[t.month].balance =
+      summaryMap[t.month].totalIncome - summaryMap[t.month].totalExpense;
+  });
+
+  const sortedEntries = Object.entries(summaryMap).sort(([monthA], [monthB]) =>
+    monthA.localeCompare(monthB)
+  );
+
+  const months = sortedEntries.map(([month]) => month);
+  const incomes = sortedEntries.map(([, s]) => s.totalIncome);
+  const expenses = sortedEntries.map(([, s]) => s.totalExpense);
+  const balances = sortedEntries.map(([, s]) => s.balance);
 
   // Populate table
   const table = document.getElementById("summaryTable");
   table.querySelectorAll("tr:not(:first-child)").forEach((r) => r.remove());
-  summary.forEach((s) => {
-    const row = table.insertRow();
-    row.insertCell(0).innerText = s.month;
-    row.insertCell(1).innerText = formatPeso(s.totalIncome);
-    row.insertCell(2).innerText = formatPeso(s.totalExpense);
-    row.insertCell(3).innerText = formatPeso(s.balance);
+  Object.keys(summaryMap)
+    .sort()
+    .forEach((s) => {
+      const row = table.insertRow();
+      row.insertCell(0).innerText = s;
+      row.insertCell(1).innerText = formatPeso(summaryMap[s].totalIncome);
+      row.insertCell(2).innerText = formatPeso(summaryMap[s].totalExpense);
+      row.insertCell(3).innerText = formatPeso(summaryMap[s].balance);
+    });
+  //Banks Table
+  const bankTable = document.getElementById("banksBalance");
+  banks.forEach((bank) => {
+    const row = bankTable.insertRow();
+    row.insertCell(0).innerText = bank.name;
+    row.insertCell(1).innerText = formatPeso(bank.balance);
   });
+  const lastRow = bankTable.insertRow();
+
+  const labelCell = lastRow.insertCell(0);
+  labelCell.innerText = "Total";
+  labelCell.style.fontWeight = "bold";
+
+  const valueCell = lastRow.insertCell(1);
+  valueCell.innerText = formatPeso(
+    banks.reduce((acc, bank) => acc + bank.balance, 0)
+  );
+  valueCell.style.fontWeight = "bold";
 
   // Charts
   const ctx1 = document.getElementById("incomeExpenseChart").getContext("2d");
