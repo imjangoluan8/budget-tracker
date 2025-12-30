@@ -15,6 +15,7 @@ openAddModalBtn.onclick = () => {
   // Set default values
   initBalance.value = "0";
 };
+let budgetCode = localStorage.getItem("budgetCode");
 
 const BASE_URL = "https://budget-backend-gucg.onrender.com";
 const apiUrl = `${BASE_URL}/banks`;

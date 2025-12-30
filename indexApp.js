@@ -7,11 +7,7 @@ function loadNav() {
     .then((html) => (navPlaceholder.innerHTML = html));
 }
 
-//   let budgetCode = localStorage.getItem("budgetCode");
-if (!budgetCode) {
-  budgetCode = prompt("Enter your Budget App Code:");
-  localStorage.setItem("budgetCode", budgetCode);
-}
+let budgetCode = localStorage.getItem("budgetCode");
 
 const monthInput = document.getElementById("month");
 const today = new Date();
