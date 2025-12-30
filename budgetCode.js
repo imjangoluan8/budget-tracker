@@ -67,3 +67,11 @@ function getBudgetCodeHeaders() {
   }
   return { "Content-Type": "application/json", "x-budget-code": budgetCode };
 }
+
+function loadNav() {
+  const navPlaceholder = document.getElementById("nav-placeholder");
+  if (!navPlaceholder) return;
+  fetch("nav.html")
+    .then((res) => res.text())
+    .then((html) => (navPlaceholder.innerHTML = html));
+}

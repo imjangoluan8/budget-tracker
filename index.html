@@ -53,6 +53,16 @@
     </div>
     <script src="budgetCode.js"></script>
     <script>
+      loadNav();
+
+      function loadNav() {
+        const navPlaceholder = document.getElementById("nav-placeholder");
+        if (!navPlaceholder) return;
+        fetch("nav.html")
+          .then((res) => res.text())
+          .then((html) => (navPlaceholder.innerHTML = html));
+      }
+
       let budgetCode = localStorage.getItem("budgetCode");
       if (!budgetCode) {
         budgetCode = prompt("Enter your Budget App Code:");
