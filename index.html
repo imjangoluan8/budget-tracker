@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Budget Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="nav-placeholder"></div>
+
+    <h1>Budget Tracker</h1>
+
+    <div style="text-align: center; margin-bottom: 15px">
+      <button id="openModalBtn">Add Transaction</button>
+    </div>
+
+    <h2>Transactions (Primary Bank)</h2>
+    <table id="transactionTable">
+      <tr>
+        <th>Bank</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Month</th>
+        <th>Action</th>
+      </tr>
+    </table>
+
+    <h2>Balance: <span id="balance">₱0</span></h2>
+
+    <h2>Monthly Summary</h2>
+    <table id="summaryTable">
+      <tr>
+        <th>Month</th>
+        <th>Total Income</th>
+        <th>Total Expense</th>
+        <th>Balance</th>
+      </tr>
+    </table>
+
+    <div id="transactionModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Add Transaction</h2>
+        <select id="type">
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+        <input type="text" id="amount" placeholder="Amount" />
+        <input type="month" id="month" />
+        <button onclick="addTransaction()">Add</button>
+      </div>
+    </div>
+
+    <script>
+      const monthInput = document.getElementById("month");
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0"); // month is 0-indexed
+      monthInput.value = `${year}-${month}`;
+
+      // const amountInput = document.getElementById('amount');
+      // amountInput.value = '0';
+
+      const apiUrl = "http://localhost:3000/transactions";
+      const summaryUrl = "http://localhost:3000/summary";
+      const modal = document.getElementById("transactionModal");
+      const openBtn = document.getElementById("openModalBtn");
+      const closeBtn = document.getElementsByClassName("close")[0];
+      openBtn.onclick = () => (modal.style.display = "block");
+      closeBtn.onclick = () => (modal.style.display = "none");
+      window.onclick = (e) => {
+        if (e.target == modal) modal.style.display = "none";
+      };
+      function formatPeso(amount) {
+        return new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+          minimumFractionDigits: 2,
+        }).format(amount);
+      }
+
+      // Amount input with commas
+      const amountInput = document.getElementById("amount");
+      amountInput.addEventListener("input", (e) => {
+        let value = e.target.value.replace(/,/g, "");
+        if (!isNaN(value) && value !== "") {
+          e.target.value = parseInt(value).toLocaleString("en-PH");
+        } else {
+          e.target.value = "";
+        }
+      });
+
+      const currentMonth = `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}`;
+      openBtn.onclick = () => {
+        modal.style.display = "block";
+        // Set default values
+        amountInput.value = "0";
+        monthInput.value = currentMonth;
+      };
+
+      async function fetchTransactions() {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        // Filter only Primary bank transactions
+        const primaryTransactions = data.filter(
+          (t) => t.bankId?.name === "Payroll Bank(RBANK)"
+        );
+        displayTransactions(primaryTransactions);
+        fetchSummary();
+      }
+      function displayTransactions(transactions) {
+        const table = document.getElementById("transactionTable");
+        table
+          .querySelectorAll("tr:not(:first-child)")
+          .forEach((r) => r.remove());
+
+        let balance = 0;
+        transactions.forEach((t) => {
+          const row = table.insertRow();
+          const bankName = t.bankId?.name || "Payroll Bank(RBANK)";
+          row.insertCell(0).innerText = bankName;
+          row.insertCell(1).innerText = t.type;
+          row.insertCell(2).innerText = formatPeso(t.amount);
+          row.insertCell(3).innerText = t.month;
+          row.insertCell(
+            4
+          ).innerHTML = `<button onclick="deleteTransaction('${t._id}')">Delete</button>`;
+          balance += t.type === "income" ? t.amount : -t.amount;
+        });
+
+        document.getElementById("balance").innerText = formatPeso(balance);
+      }
+
+      async function addTransaction() {
+        const type = document.getElementById("type").value;
+        let amount = document.getElementById("amount").value.replace(/,/g, "");
+        amount = parseFloat(amount);
+        const month = document.getElementById("month").value;
+        if (isNaN(amount) || !month) return alert("Fill all fields");
+
+        // Always assign Primary bank for manual transactions
+        await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, amount, month }),
+        });
+
+        modal.style.display = "none";
+        document.getElementById("amount").value = "";
+        document.getElementById("month").value = "";
+        fetchTransactions();
+      }
+
+      async function deleteTransaction(id) {
+        await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+        fetchTransactions();
+      }
+
+      async function fetchSummary() {
+        const res = await fetch(summaryUrl);
+        const summary = await res.json();
+
+        // Filter only Primary bank transactions
+        const primarySummaryMap = {};
+        summary.forEach((s) => {
+          // s may include transactions from all banks; we need to filter
+          // Since the summary API currently returns totals for all banks,
+          // we need to fetch transactions directly and calculate for Primary
+        });
+
+        // Instead, fetch all transactions for primary and calculate summary
+        const txRes = await fetch(apiUrl);
+        const transactions = await txRes.json();
+        const primaryTx = transactions.filter(
+          (t) => t.bankId?.name === "Payroll Bank(RBANK)"
+        );
+
+        const summaryMap = {};
+        primaryTx.forEach((t) => {
+          if (!summaryMap[t.month])
+            summaryMap[t.month] = {
+              totalIncome: 0,
+              totalExpense: 0,
+              balance: 0,
+            };
+          if (t.type === "income") summaryMap[t.month].totalIncome += t.amount;
+          else summaryMap[t.month].totalExpense += t.amount;
+          summaryMap[t.month].balance =
+            summaryMap[t.month].totalIncome - summaryMap[t.month].totalExpense;
+        });
+
+        const table = document.getElementById("summaryTable");
+        table
+          .querySelectorAll("tr:not(:first-child)")
+          .forEach((r) => r.remove());
+
+        Object.keys(summaryMap)
+          .sort()
+          .forEach((month) => {
+            const row = table.insertRow();
+            row.insertCell(0).innerText = month;
+            row.insertCell(1).innerText = formatPeso(
+              summaryMap[month].totalIncome
+            );
+            row.insertCell(2).innerText = formatPeso(
+              summaryMap[month].totalExpense
+            );
+            row.insertCell(3).innerText = formatPeso(summaryMap[month].balance);
+          });
+      }
+      fetch("nav.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("nav-placeholder").innerHTML = html;
+        });
+      fetchTransactions();
+    </script>
+  </body>
+</html>

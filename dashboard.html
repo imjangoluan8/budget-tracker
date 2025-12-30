@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Budget Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: Arial;
+        padding: 20px;
+        max-width: 900px;
+        margin: auto;
+      }
+
+      nav {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      nav a {
+        margin: 0 10px;
+        padding: 8px 12px;
+        background-color: #4caf50;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+
+      nav a:hover {
+        background-color: #45a049;
+      }
+
+      h1,
+      h2 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      canvas {
+        margin-top: 20px;
+      }
+
+      /* Total balance card */
+      #totalCard {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .card {
+        background-color: #f0f0f0;
+        padding: 15px;
+        margin: 5px;
+        border-radius: 8px;
+        flex: 1 1 40%;
+        text-align: center;
+        min-width: 120px;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 20px;
+        font-size: 0.95em;
+      }
+
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+      }
+
+      th {
+        background-color: #f0f0f0;
+      }
+
+      @media screen and (max-width: 480px) {
+        th,
+        td {
+          font-size: 0.85em;
+          padding: 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="nav-placeholder"></div>
+
+    <h1>Budget Dashboard</h1>
+
+    <div id="totalCard">
+      <div class="card">
+        <h3>Total Income</h3>
+        <p id="totalIncome">₱0</p>
+      </div>
+      <div class="card">
+        <h3>Total Expense</h3>
+        <p id="totalExpense">₱0</p>
+      </div>
+      <div class="card">
+        <h3>Balance</h3>
+        <p id="totalBalance">₱0</p>
+      </div>
+    </div>
+
+    <h2>Monthly Income vs Expense</h2>
+    <canvas id="incomeExpenseChart" width="400" height="200"></canvas>
+
+    <h2>Monthly Balance</h2>
+    <canvas id="balanceChart" width="400" height="200"></canvas>
+
+    <h2>Monthly Summary Table</h2>
+    <table id="summaryTable">
+      <tr>
+        <th>Month</th>
+        <th>Total Income</th>
+        <th>Total Expense</th>
+        <th>Balance</th>
+      </tr>
+    </table>
+
+    <script>
+      const summaryUrl = "http://localhost:3000/summary";
+
+      // Format Philippine Peso
+      function formatPeso(amount) {
+        return new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+          minimumFractionDigits: 2,
+        }).format(amount);
+      }
+
+      async function fetchSummary() {
+        const res = await fetch(summaryUrl);
+        const summary = await res.json();
+
+        // Total income, expense, balance
+        let totalIncome = 0,
+          totalExpense = 0;
+        summary.forEach((s) => {
+          totalIncome += s.totalIncome;
+          totalExpense += s.totalExpense;
+        });
+        const totalBalance = totalIncome - totalExpense;
+
+        document.getElementById("totalIncome").innerText =
+          formatPeso(totalIncome);
+        document.getElementById("totalExpense").innerText =
+          formatPeso(totalExpense);
+        document.getElementById("totalBalance").innerText =
+          formatPeso(totalBalance);
+
+        const months = summary.map((s) => s.month);
+        const incomes = summary.map((s) => s.totalIncome);
+        const expenses = summary.map((s) => s.totalExpense);
+        const balances = summary.map((s) => s.balance);
+
+        // Populate table
+        const table = document.getElementById("summaryTable");
+        table
+          .querySelectorAll("tr:not(:first-child)")
+          .forEach((r) => r.remove());
+        summary.forEach((s) => {
+          const row = table.insertRow();
+          row.insertCell(0).innerText = s.month;
+          row.insertCell(1).innerText = formatPeso(s.totalIncome);
+          row.insertCell(2).innerText = formatPeso(s.totalExpense);
+          row.insertCell(3).innerText = formatPeso(s.balance);
+        });
+
+        // Charts
+        const ctx1 = document
+          .getElementById("incomeExpenseChart")
+          .getContext("2d");
+        new Chart(ctx1, {
+          type: "bar",
+          data: {
+            labels: months,
+            datasets: [
+              {
+                label: "Income",
+                data: incomes,
+                backgroundColor: "rgba(54, 162, 235, 0.7)",
+              },
+              {
+                label: "Expense",
+                data: expenses,
+                backgroundColor: "rgba(255, 99, 132, 0.7)",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "top" } },
+            scales: { y: { beginAtZero: true } },
+          },
+        });
+
+        const ctx2 = document.getElementById("balanceChart").getContext("2d");
+        new Chart(ctx2, {
+          type: "line",
+          data: {
+            labels: months,
+            datasets: [
+              {
+                label: "Balance",
+                data: balances,
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                fill: true,
+                tension: 0.2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "top" } },
+            scales: { y: { beginAtZero: true } },
+          },
+        });
+      }
+
+      // Initial load
+      fetch("nav.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("nav-placeholder").innerHTML = html;
+        });
+      fetchSummary();
+    </script>
+  </body>
+</html>
