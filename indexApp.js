@@ -8,7 +8,7 @@ function loadNav() {
 }
 
 let budgetCode = localStorage.getItem("budgetCode");
-
+console.log("Loaded budget code:", budgetCode);
 const monthInput = document.getElementById("month");
 const today = new Date();
 const year = today.getFullYear();
