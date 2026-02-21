@@ -224,5 +224,16 @@ window.addEventListener("DOMContentLoaded", () => {
   loadNav();
   initFilters();
   initModal();
+
+  // ✅ Set default filter to current month
+  const filterInput = document.getElementById("filterMonthYear");
+  const today = new Date();
+  const currentMonth = `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}`;
+
+  filterInput.value = currentMonth;
+  activeFilter = currentMonth;
+
   fetchTransactions();
 });
