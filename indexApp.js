@@ -10,9 +10,6 @@ function loadNav() {
 let budgetCode = localStorage.getItem("budgetCode");
 console.log("Loaded budget code:", budgetCode);
 const monthInput = document.getElementById("month");
-const filterInput = document.getElementById("filterMonthYear");
-const applyFilterBtn = document.getElementById("applyFilterBtn");
-const clearFilterBtn = document.getElementById("clearFilterBtn");
 const today = new Date();
 const year = today.getFullYear();
 const month = String(today.getMonth() + 1).padStart(2, "0"); // month is 0-indexed
@@ -21,18 +18,37 @@ monthInput.value = `${year}-${month}`;
 // Active filter in format "YYYY-MM" or null for no filtering
 let activeFilter = null;
 
-// Wire filter buttons if elements exist
-if (filterInput && applyFilterBtn && clearFilterBtn) {
-  applyFilterBtn.onclick = () => {
-    activeFilter = filterInput.value || null;
-    fetchTransactions();
-  };
-  clearFilterBtn.onclick = () => {
-    filterInput.value = "";
-    activeFilter = null;
-    fetchTransactions();
-  };
+// Initialize filter controls and event handlers (safe if elements not yet present)
+function initFilters() {
+  console.log("initFilters called");
+  const filterInput = document.getElementById("filterMonthYear");
+  const applyFilterBtn = document.getElementById("applyFilterBtn");
+  const clearFilterBtn = document.getElementById("clearFilterBtn");
+
+  if (applyFilterBtn) {
+    applyFilterBtn.addEventListener("click", () => {
+      const val = filterInput?.value || null;
+      console.log("Apply filter clicked, input value=", val);
+      activeFilter = val;
+      fetchTransactions();
+    });
+  }
+  if (clearFilterBtn) {
+    clearFilterBtn.addEventListener("click", () => {
+      console.log("Clear filter clicked");
+      if (filterInput) filterInput.value = "";
+      activeFilter = null;
+      fetchTransactions();
+    });
+  }
+
+  if (!applyFilterBtn && !clearFilterBtn) {
+    console.log("Filter buttons not found yet");
+  }
 }
+// Run once now and also after DOMContentLoaded to ensure elements found
+initFilters();
+window.addEventListener("DOMContentLoaded", initFilters);
 
 // const amountInput = document.getElementById('amount');
 // amountInput.value = '0';
@@ -80,17 +96,28 @@ openBtn.onclick = () => {
 const headers = getBudgetCodeHeaders();
 
 async function fetchTransactions() {
+  console.log("fetchTransactions start, activeFilter=", activeFilter);
   const res = await fetch(apiUrl, { headers });
   const data = await res.json();
   // Filter only Primary bank transactions
   let primaryTransactions = data.filter(
     (t) => t.bankId?.name === "Payroll Bank(RBANK)"
   );
+  console.log(
+    "total primary transactions fetched=",
+    primaryTransactions.length
+  );
 
   // Apply month/year filter when activeFilter is set (format: "YYYY-MM")
   if (activeFilter) {
-    primaryTransactions = primaryTransactions.filter(
-      (t) => t.month === activeFilter
+    primaryTransactions = primaryTransactions.filter((t) => {
+      const m = t.month || "";
+      // accept "YYYY-MM" or "YYYY-MM-DD" formats
+      return m.startsWith(activeFilter);
+    });
+    console.log(
+      "after applying filter, transactions=",
+      primaryTransactions.length
     );
   }
 
