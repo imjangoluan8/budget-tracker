@@ -1,70 +1,31 @@
-loadNav();
+// ===============================
+// CONFIG
+// ===============================
+const BASE_URL = "https://budget-backend-gucg.onrender.com";
+const apiUrl = `${BASE_URL}/transactions`;
+const summaryUrl = `${BASE_URL}/summary`;
+const headers = getBudgetCodeHeaders();
+
+// ===============================
+// GLOBAL STATE
+// ===============================
+let activeFilter = null;
+
+// ===============================
+// LOAD NAVIGATION
+// ===============================
 function loadNav() {
   const navPlaceholder = document.getElementById("nav-placeholder");
   if (!navPlaceholder) return;
+
   fetch("nav.html")
     .then((res) => res.text())
     .then((html) => (navPlaceholder.innerHTML = html));
 }
 
-let budgetCode = localStorage.getItem("budgetCode");
-console.log("Loaded budget code:", budgetCode);
-const monthInput = document.getElementById("month");
-const today = new Date();
-const year = today.getFullYear();
-const month = String(today.getMonth() + 1).padStart(2, "0"); // month is 0-indexed
-monthInput.value = `${year}-${month}`;
-
-// Active filter in format "YYYY-MM" or null for no filtering
-let activeFilter = null;
-
-// Initialize filter controls and event handlers (safe if elements not yet present)
-function initFilters() {
-  console.log("initFilters called");
-  const filterInput = document.getElementById("filterMonthYear");
-  const applyFilterBtn = document.getElementById("applyFilterBtn");
-  const clearFilterBtn = document.getElementById("clearFilterBtn");
-
-  if (applyFilterBtn) {
-    applyFilterBtn.addEventListener("click", () => {
-      const val = filterInput?.value || null;
-      console.log("Apply filter clicked, input value=", val);
-      activeFilter = val;
-      fetchTransactions();
-    });
-  }
-  if (clearFilterBtn) {
-    clearFilterBtn.addEventListener("click", () => {
-      console.log("Clear filter clicked");
-      if (filterInput) filterInput.value = "";
-      activeFilter = null;
-      fetchTransactions();
-    });
-  }
-
-  if (!applyFilterBtn && !clearFilterBtn) {
-    console.log("Filter buttons not found yet");
-  }
-}
-// Run once now and also after DOMContentLoaded to ensure elements found
-initFilters();
-window.addEventListener("DOMContentLoaded", initFilters);
-
-// const amountInput = document.getElementById('amount');
-// amountInput.value = '0';
-
-const BASE_URL = "https://budget-backend-gucg.onrender.com";
-const apiUrl = `${BASE_URL}/transactions`;
-const summaryUrl = `${BASE_URL}/summary`;
-
-const modal = document.getElementById("transactionModal");
-const openBtn = document.getElementById("openModalBtn");
-const closeBtn = document.getElementsByClassName("close")[0];
-openBtn.onclick = () => (modal.style.display = "block");
-closeBtn.onclick = () => (modal.style.display = "none");
-window.onclick = (e) => {
-  if (e.target == modal) modal.style.display = "none";
-};
+// ===============================
+// FORMAT CURRENCY
+// ===============================
 function formatPeso(amount) {
   return new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -73,134 +34,107 @@ function formatPeso(amount) {
   }).format(amount);
 }
 
-// Amount input with commas
-const amountInput = document.getElementById("amount");
-amountInput.addEventListener("input", (e) => {
-  let value = e.target.value.replace(/,/g, "");
-  if (!isNaN(value) && value !== "") {
-    e.target.value = parseInt(value).toLocaleString("en-PH");
-  } else {
-    e.target.value = "";
-  }
-});
-
-const currentMonth = `${today.getFullYear()}-${String(
-  today.getMonth() + 1
-).padStart(2, "0")}`;
-openBtn.onclick = () => {
-  modal.style.display = "block";
-  // Set default values
-  amountInput.value = "0";
-  monthInput.value = currentMonth;
-};
-const headers = getBudgetCodeHeaders();
-
+// ===============================
+// FETCH TRANSACTIONS
+// ===============================
 async function fetchTransactions() {
-  console.log("fetchTransactions start, activeFilter=", activeFilter);
+  console.log("Fetching transactions. Active filter:", activeFilter);
+
   const res = await fetch(apiUrl, { headers });
   const data = await res.json();
-  // Filter only Primary bank transactions
+
+  // Filter Primary Bank only
   let primaryTransactions = data.filter(
     (t) => t.bankId?.name === "Payroll Bank(RBANK)"
   );
-  console.log(
-    "total primary transactions fetched=",
-    primaryTransactions.length
-  );
 
-  // Apply month/year filter when activeFilter is set (format: "YYYY-MM")
+  // Apply month filter
   if (activeFilter) {
-    primaryTransactions = primaryTransactions.filter((t) => {
-      const m = t.month || "";
-      // accept "YYYY-MM" or "YYYY-MM-DD" formats
-      return m.startsWith(activeFilter);
-    });
-    console.log(
-      "after applying filter, transactions=",
-      primaryTransactions.length
+    primaryTransactions = primaryTransactions.filter((t) =>
+      (t.month || "").startsWith(activeFilter)
     );
   }
 
   displayTransactions(primaryTransactions);
-  fetchSummary();
+  calculateSummary(primaryTransactions);
 }
+
+// ===============================
+// DISPLAY TRANSACTIONS
+// ===============================
 function displayTransactions(transactions) {
   const table = document.getElementById("transactionTable");
   table.querySelectorAll("tr:not(:first-child)").forEach((r) => r.remove());
 
   let balance = 0;
+
   transactions.forEach((t) => {
     const row = table.insertRow();
-    const bankName = t.bankId?.name || "Payroll Bank(RBANK)";
-    row.insertCell(0).innerText = bankName;
+    row.insertCell(0).innerText = t.bankId?.name || "Payroll Bank(RBANK)";
     row.insertCell(1).innerText = t.type;
     row.insertCell(2).innerText = formatPeso(t.amount);
     row.insertCell(3).innerText = t.month;
     row.insertCell(
       4
     ).innerHTML = `<button onclick="deleteTransaction('${t._id}')">Delete</button>`;
+
     balance += t.type === "income" ? t.amount : -t.amount;
   });
 
   document.getElementById("balance").innerText = formatPeso(balance);
 }
 
+// ===============================
+// ADD TRANSACTION
+// ===============================
 async function addTransaction() {
   const type = document.getElementById("type").value;
   let amount = document.getElementById("amount").value.replace(/,/g, "");
   amount = parseFloat(amount);
   const month = document.getElementById("month").value;
-  if (isNaN(amount) || !month) return alert("Fill all fields");
 
-  // Always assign Primary bank for manual transactions
+  if (isNaN(amount) || !month) {
+    alert("Fill all fields");
+    return;
+  }
+
   await fetch(apiUrl, {
     method: "POST",
     headers,
     body: JSON.stringify({ type, amount, month }),
   });
 
-  modal.style.display = "none";
-  document.getElementById("amount").value = "";
-  document.getElementById("month").value = "";
+  closeModal();
   fetchTransactions();
 }
 
+// ===============================
+// DELETE TRANSACTION
+// ===============================
 async function deleteTransaction(id) {
   await fetch(`${apiUrl}/${id}`, { method: "DELETE", headers });
   fetchTransactions();
 }
 
-async function fetchSummary() {
-  const res = await fetch(summaryUrl, { headers });
-  const summary = await res.json();
-
-  // Filter only Primary bank transactions
-  const primarySummaryMap = {};
-  summary.forEach((s) => {
-    // s may include transactions from all banks; we need to filter
-    // Since the summary API currently returns totals for all banks,
-    // we need to fetch transactions directly and calculate for Primary
-  });
-
-  // Instead, fetch all transactions for primary and calculate summary
-  const txRes = await fetch(apiUrl, { headers });
-  const transactions = await txRes.json();
-  const primaryTx = transactions.filter(
-    (t) => t.bankId?.name === "Payroll Bank(RBANK)"
-  );
-
+// ===============================
+// CALCULATE SUMMARY (NO EXTRA API CALL)
+// ===============================
+function calculateSummary(transactions) {
   const summaryMap = {};
-  primaryTx.forEach((t) => {
-    if (!summaryMap[t.month])
+
+  transactions.forEach((t) => {
+    if (!summaryMap[t.month]) {
       summaryMap[t.month] = {
         totalIncome: 0,
         totalExpense: 0,
-        balance: 0,
       };
-    if (t.type === "income") summaryMap[t.month].totalIncome += t.amount;
-    else summaryMap[t.month].totalExpense += t.amount;
-    summaryMap[t.month].balance =
-      summaryMap[t.month].totalIncome - summaryMap[t.month].totalExpense;
+    }
+
+    if (t.type === "income") {
+      summaryMap[t.month].totalIncome += t.amount;
+    } else {
+      summaryMap[t.month].totalExpense += t.amount;
+    }
   });
 
   const table = document.getElementById("summaryTable");
@@ -210,15 +144,85 @@ async function fetchSummary() {
     .sort()
     .forEach((month) => {
       const row = table.insertRow();
+      const income = summaryMap[month].totalIncome;
+      const expense = summaryMap[month].totalExpense;
+      const balance = income - expense;
+
       row.insertCell(0).innerText = month;
-      row.insertCell(1).innerText = formatPeso(summaryMap[month].totalIncome);
-      row.insertCell(2).innerText = formatPeso(summaryMap[month].totalExpense);
-      row.insertCell(3).innerText = formatPeso(summaryMap[month].balance);
+      row.insertCell(1).innerText = formatPeso(income);
+      row.insertCell(2).innerText = formatPeso(expense);
+      row.insertCell(3).innerText = formatPeso(balance);
     });
 }
-fetch("nav.html")
-  .then((res) => res.text())
-  .then((html) => {
-    document.getElementById("nav-placeholder").innerHTML = html;
+
+// ===============================
+// FILTER CONTROLS
+// ===============================
+function initFilters() {
+  const filterInput = document.getElementById("filterMonthYear");
+  const applyBtn = document.getElementById("applyFilterBtn");
+  const clearBtn = document.getElementById("clearFilterBtn");
+
+  applyBtn.addEventListener("click", () => {
+    activeFilter = filterInput.value || null;
+    fetchTransactions();
   });
-fetchTransactions();
+
+  clearBtn.addEventListener("click", () => {
+    filterInput.value = "";
+    activeFilter = null;
+    fetchTransactions();
+  });
+}
+
+// ===============================
+// MODAL CONTROLS
+// ===============================
+function initModal() {
+  const modal = document.getElementById("transactionModal");
+  const openBtn = document.getElementById("openModalBtn");
+  const closeBtn = document.querySelector(".close");
+  const amountInput = document.getElementById("amount");
+  const monthInput = document.getElementById("month");
+
+  const today = new Date();
+  const currentMonth = `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}`;
+
+  openBtn.onclick = () => {
+    modal.style.display = "block";
+    amountInput.value = "0";
+    monthInput.value = currentMonth;
+  };
+
+  closeBtn.onclick = closeModal;
+
+  window.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
+
+  // Format amount with commas
+  amountInput.addEventListener("input", (e) => {
+    let value = e.target.value.replace(/,/g, "");
+    if (!isNaN(value) && value !== "") {
+      e.target.value = parseInt(value).toLocaleString("en-PH");
+    } else {
+      e.target.value = "";
+    }
+  });
+}
+
+function closeModal() {
+  document.getElementById("transactionModal").style.display = "none";
+}
+
+// ===============================
+// INITIALIZE EVERYTHING
+// ===============================
+window.addEventListener("DOMContentLoaded", () => {
+  loadNav();
+  initFilters();
+  initModal();
+  fetchTransactions();
+});
